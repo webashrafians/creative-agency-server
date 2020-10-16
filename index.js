@@ -24,7 +24,10 @@ app.get("/", (req, res) => {
 //server port.....................................
 const port = 5000;
 
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 //collection name.................................
 client.connect((err) => {
@@ -96,7 +99,6 @@ client.connect((err) => {
       });
     });
   });
-
 });
 
 app.listen(process.env.PORT || port);
