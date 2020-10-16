@@ -1,180 +1,102 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const cors = require('cors')
-const fs = require('fs-extra')
-const fileUpload = require('express-fileupload')
-const MongoClient = require('mongodb').MongoClient;
-const ObjectId = require('mongodb').ObjectID;
-const querystring = require('querystring');
-require('dotenv').config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const fileUpload = require("express-fileupload");
+const MongoClient = require("mongodb").MongoClient;
+require("dotenv").config();
 
-// creative agency server functionality.............
-const app = express()
-app.use(cors())
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.static('service'))
-app.use(fileUpload({
-  createParentPath: true
-}));
+// mongodb connection............................
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.g7kps.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 
-app.get('/', (req, res) => {
-    res.send('Creative Agency Database in Connected')
-})
+// creative agency server functionality..........
+const app = express();
 
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static("service"));
+app.use(fileUpload());
+
+//home directory.................................
+app.get("/", (req, res) => {
+  res.send("Creative Agency mongodb and heroku is connected");
+});
+
+//server port.....................................
 const port = 5000;
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.g7kps.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-// service collection
-client.connect(err => {
-  const serviceCollection = client.db(process.env.DB_NAME).collection(process.env.DB_SERVICE);
-  
-  // getService..........................
-  app.get('/getServices', (req, res) => {
-    serviceCollection.find({})
-    .toArray( (err, documents) => {
-        res.send(documents)
-    })
-  })
+//collection name.................................
+client.connect((err) => {
+  const ordersCollection = client.db("creativeAgency").collection("orders");
+  const serviceCollection = client.db("creativeAgency").collection("services");
+  const reviewCollection = client.db("creativeAgency").collection("reviews");
+  const adminCollection = client.db("creativeAgency").collection("admins");
 
-  // service.............................
-  app.get('/service/:id', (req, res) => {
-    serviceCollection.find({_id: ObjectId(req.params.id)})
-    .toArray( (err, documents) => {
-        res.send(documents[0])
-      })
-    })
+  //addOrder........................................
+  app.post("/addOrder", (req, res) => {
+    const orders = req.body;
+    ordersCollection.insertOne(orders).then((result) => {
+      res.send(result.insertedCount > 0);
+    });
+  });
 
-  // addService..........................
-  app.post('/addService', (req, res) => {
-    const image = req.files.image;
-    const title = req.body.title;
-    const description = req.body.description;
-    const filePath = `${__dirname}/service/${image.name}`
-    image.mv(filePath, err => {
-      if(err){
-        console.log(err)
-        res.status(500).send({msg: 'Failed to save image in mongodb'})
+  //addReview........................................
+  app.post("/addReview", (req, res) => {
+    const reviews = req.body;
+    reviewCollection.insertOne(reviews).then((result) => {
+      res.send(result.insertedCount > 0);
+    });
+  });
+
+  //addAdminr........................................
+  app.post("/addAdmin", (req, res) => {
+    const admins = req.body;
+    adminCollection.insertOne(admins).then((result) => {
+      res.send(result.insertedCount > 0);
+    });
+  });
+
+  //addService........................................
+  app.post("/addService", (req, res) => {
+    const file = req.files.file;
+    const service = req.body.service;
+    const details = req.body.details;
+    const newImg = file.data;
+    const encImg = newImg.toString("base64");
+
+    var image = {
+      contentType: file.mimetype,
+      size: file.size,
+      img: Buffer.from(encImg, "base64"),
+    };
+    serviceCollection.insertOne({ service, details, image }).then((result) => {
+      res.send(result.insertedCount > 0);
+    });
+  });
+
+  //get services.........................................
+  app.get("/services", (req, res) => {
+    serviceCollection.find({}).toArray((err, documents) => {
+      res.send(documents);
+    });
+  });
+
+  //orderLists ...........................................
+  app.get("/orderLists", (req, res) => {
+    const services = req.body;
+    const email = req.body.email;
+    adminCollection.find({ email: email }).toArray((err, admins) => {
+      if (admins.lenth === 0) {
+        filter.email = email;
       }
-      const newImage = fs.readFileSync(filePath)
-      const encImage = newImage.toString('base64')
+      ordersCollection.find().toArray((err, documents) => {
+        console.log(email, admins, documents);
+        res.send(documents);
+      });
+    });
+  });
 
-      var image = {
-        contentType: req.files.image.mimetype,
-        size: req.files.image.size,
-        img: Buffer.from(encImage, 'base64')
-      }
-
-      serviceCollection.insertOne({title, description, image})
-      .then(result => {
-        fs.remove(filePath, error => {
-          if(error){
-            console.log(error)
-          }
-          res.send(result.insertedCount > 0)
-        })
-      })
-    })
-    console.log(title, description, image)
-  })
 });
 
-// reviews.............
-client.connect(err => {
-  const reviewsCollection = client.db(process.env.DB_NAME).collection(process.env.DB_REVIEWS);
-  
-  // getReviews.........................
-  app.get('/getReviews', (req, res) => {
-    reviewsCollection.find({})
-    .toArray( (err, documents) => {
-        res.send(documents)
-    })
-  })
-
-  // addReview..........................
-  app.post('/addReview', (req, res) => {
-    const data = req.body
-    reviewsCollection.insertOne(data)
-    .then(result => {
-      res.send(result)
-    })
-    .catch(err => console.log(err))
-  })
-});
-
-// order...............
-client.connect(err => {
-  const orderCollection = client.db(process.env.DB_NAME).collection(process.env.DB_ORDER);
-  
-  // addOrder..........................
-  app.post('/addOrder', (req, res) => {
-    const data = req.body
-    orderCollection.insertOne(data)
-    .then(result => {
-      res.send(result)
-    })
-    .catch(err => console.log(err))
-  })
-
-  // getUserOrder..........................
-  app.get('/getUserOrder/', (req, res) => {
-    orderCollection.find({email: req.query.email})
-    .toArray( (err, documents) => {
-      res.send(documents)
-    } )
-  })
-
-  // getAllOrderedService............................
-  app.get('/getAllOrderedService', (req, res) => {
-    orderCollection.find({})
-    .toArray( (err, documents) => {
-        res.send(documents)
-    })
-  })
-
-  //update status............................
-  app.patch('/status-update/id',(req, res)=>{
-    const id = req.query.id;
-    const body = req.body;
-    const {status} = body;
-    orderCollection.updateOne(
-        { _id: ObjectId(id) },
-        {
-          $set: { status: status},
-        }
-    )
-    .then(result => res.send(result.modifiedCount))
-  })
-});
-
-// admin...............
-client.connect(err => {
-  const adminCollection = client.db(process.env.DB_NAME).collection(process.env.DB_ADMIN);
-  
-  // getAdmin..........................
-  app.get('/getAdmin/', (req, res) => {
-    adminCollection.find({email: req.query.email})
-    .toArray( (err, documents) => {
-      if(documents.length > 0){
-        res.send(true)
-      }
-      else{
-        res.send(false)
-      }
-    } )
-  })
-
-  // addAdmin..........................
-  app.post('/addAdmin', (req, res) => {
-    const email = req.body
-    adminCollection.insertOne(email)
-    .then(result => {
-      res.send(result)
-    })
-    .catch(err => console.log(err))
-  })
-});
-
-app.listen(process.env.PORT || port)
+app.listen(process.env.PORT || port);
