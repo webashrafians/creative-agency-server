@@ -1,9 +1,9 @@
-const express = require("express");
 const app = express();
 require("dotenv").config();
-const MongoClient = require("mongodb").MongoClient;
-const bodyParser = require("body-parser");
 const cors = require("cors");
+const express = require("express");
+const bodyParser = require("body-parser");
+const MongoClient = require("mongodb").MongoClient;
 const fileUpload = require("express-fileupload");
 
 // mongodb connection............................
@@ -28,7 +28,7 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 client.connect((err) => {
-  const serviceCollection = client.db("creative-agency").collection("service");
+  const serviceCollection = client.db("creative-agency").collection("services");
   const reviewCollection = client.db("creative-agency").collection("review");
   const orderCollection = client.db("creative-agency").collection("order");
   const adminCollection = client.db("creative-agency").collection("admin");
@@ -119,7 +119,7 @@ client.connect((err) => {
   });
 
   //service..........................
-  app.get("/service", (req, res) => {
+  app.get("/services", (req, res) => {
     serviceCollection.find({}).toArray((error, document) => {
       res.send(document);
     });
