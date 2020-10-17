@@ -22,13 +22,5 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.5"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/webashrafians/creative-agency-server.git"
-  },
-  "bugs": {
-    "url": "https://github.com/webashrafians/creative-agency-server/issues"
-  },
-  "homepage": "https://github.com/webashrafians/creative-agency-server#readme"
+  }
 }
