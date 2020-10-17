@@ -28,10 +28,10 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
 });
 client.connect((err) => {
-  const serviceCollection = client.db("creativeAgency").collection("service");
-  const reviewCollection = client.db("creativeAgency").collection("review");
-  const orderCollection = client.db("creativeAgency").collection("order");
-  const adminCollection = client.db("creativeAgency").collection("admin");
+  const serviceCollection = client.db("creative-agency").collection("service");
+  const reviewCollection = client.db("creative-agency").collection("review");
+  const orderCollection = client.db("creative-agency").collection("order");
+  const adminCollection = client.db("creative-agency").collection("admin");
 
   // addReview..........................
   app.post("/addReview", (req, res) => {
